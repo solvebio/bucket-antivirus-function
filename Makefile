@@ -72,7 +72,7 @@ update: ./build/lambda.zip ## Run update function locally
 .PHONY: deploy_stack
 deploy_stack:
 	@echo "Deploying $(AV_LAMBDA_STACK_NAME) stack"
-	aws cloudformation deploy --template-file $(CLOUDFORMATION_LOC) --stack-name $(AV_LAMBDA_STACK_NAME) --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy --template-file $(CLOUDFORMATION_LOC) --stack-name $(AV_LAMBDA_STACK_NAME) --parameters ParameterKey=SourceBucket,ParameterValue=$(BUCKET_NAME) --capabilities CAPABILITY_NAMED_IAM
 
 .PHONY: upload_lambda
 upload_lambda:
