@@ -20,6 +20,7 @@ from urllib.parse import unquote_plus
 from distutils.util import strtobool
 
 import boto3
+from botocore.exceptions import ClientError
 
 import clamav
 import metrics
@@ -39,6 +40,7 @@ from common import AV_STATUS_SNS_PUBLISH_INFECTED
 from common import AV_TIMESTAMP_METADATA
 from common import SNS_ENDPOINT
 from common import S3_ENDPOINT
+from common import ALLOWED_FILE_SIZE
 from common import create_dir
 from common import get_timestamp
 
@@ -219,6 +221,14 @@ def lambda_handler(event, context):
 
     # If event_type is not 'ObjectCreated' escape lambda
     if s3_object is None:
+        return
+
+    try:
+        # If the size of the S3 object exceeds an allowed size, skip AV scanning
+        if s3_object.content_length >= ALLOWED_FILE_SIZE:
+            return
+    except ClientError:
+        # Skip AV scanning of object if it is not found
         return
 
     if str_to_bool(AV_PROCESS_ORIGINAL_VERSION_ONLY):
