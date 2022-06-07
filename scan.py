@@ -226,9 +226,12 @@ def lambda_handler(event, context):
     try:
         # If the size of the S3 object exceeds an allowed size, skip AV scanning
         if s3_object.content_length >= ALLOWED_FILE_SIZE:
+            print(f'The file {s3_object.key} is too large (> {ALLOWED_FILE_SIZE / (1024 * 1024)}): '
+                  f'Skipping AV scanning')
             return
     except ClientError:
         # Skip AV scanning of object if it is not found
+        print(f'The file {s3_object.key} does not exist: Skipping AV scanning')
         return
 
     if str_to_bool(AV_PROCESS_ORIGINAL_VERSION_ONLY):
