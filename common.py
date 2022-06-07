@@ -49,6 +49,7 @@ LAMBDA_ENDPOINT = os.getenv("LAMBDA_ENDPOINT", None)
 
 # SolveBio envs
 ALLOWED_FILE_SIZE = os.getenv("ALLOWED_FILE_SIZE", 100 * 1024 * 1024)
+SKIP_LARGE_FILE = os.getenv("SKIP_LARGE_FILE", "skip-large-file")
 
 
 def create_dir(path):

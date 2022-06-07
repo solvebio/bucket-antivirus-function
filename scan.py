@@ -25,6 +25,7 @@ from botocore.exceptions import ClientError
 import clamav
 import metrics
 from common import AV_DEFINITION_S3_BUCKET
+from common import SKIP_LARGE_FILE
 from common import AV_DEFINITION_S3_PREFIX
 from common import AV_DELETE_INFECTED_FILES
 from common import AV_PROCESS_ORIGINAL_VERSION_ONLY
@@ -138,24 +139,42 @@ def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
     )
 
 
-def set_av_tags(s3_client, s3_object, scan_result, scan_signature, timestamp):
+def set_tags(s3_client, s3_object, tags_data=None, update=False):
+
+    # Skip setting of tags if tag data is not provided
+    if tags_data is None:
+        return
+
     curr_tags = s3_client.get_object_tagging(
         Bucket=s3_object.bucket_name, Key=s3_object.key
     )["TagSet"]
     new_tags = copy.copy(curr_tags)
-    for tag in curr_tags:
-        if tag["Key"] in [
-            AV_SIGNATURE_METADATA,
-            AV_STATUS_METADATA,
-            AV_TIMESTAMP_METADATA,
-        ]:
-            new_tags.remove(tag)
-    new_tags.append({"Key": AV_SIGNATURE_METADATA, "Value": scan_signature})
-    new_tags.append({"Key": AV_STATUS_METADATA, "Value": scan_result})
-    new_tags.append({"Key": AV_TIMESTAMP_METADATA, "Value": timestamp})
+
+    if not update:
+        for tag in curr_tags:
+            if tag["Key"] in [
+                AV_SIGNATURE_METADATA,
+                AV_STATUS_METADATA,
+                AV_TIMESTAMP_METADATA,
+            ]:
+                new_tags.remove(tag)
+
+    for k, v in tags_data:
+        new_tags.append({"Key": k, "Value": v})
+
     s3_client.put_object_tagging(
         Bucket=s3_object.bucket_name, Key=s3_object.key, Tagging={"TagSet": new_tags}
     )
+
+
+def set_av_tags(s3_client, s3_object, scan_result, scan_signature, timestamp):
+    tags_data = {
+        AV_SIGNATURE_METADATA: scan_signature,
+        AV_STATUS_METADATA: scan_result,
+        AV_TIMESTAMP_METADATA: timestamp
+    }
+
+    set_tags(s3_client=s3_client, s3_object=s3_object, tags_data=tags_data)
 
 
 def sns_start_scan(sns_client, s3_object, scan_start_sns_arn, timestamp):
@@ -228,6 +247,10 @@ def lambda_handler(event, context):
         if s3_object.content_length >= ALLOWED_FILE_SIZE:
             print(f'The file {s3_object.key} is too large (> {ALLOWED_FILE_SIZE / (1024 * 1024)}): '
                   f'Skipping AV scanning')
+
+            # Set SKIP_LARGE_FILE tag to the file
+            set_tags(s3_client=s3_client, s3_object=s3_object, tags_data={SKIP_LARGE_FILE: True}, update=True)
+
             return
     except ClientError:
         # Skip AV scanning of object if it is not found
