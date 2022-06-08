@@ -139,7 +139,7 @@ def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
     )
 
 
-def set_tags(s3_client, s3_object, tags_data=None, update=False):
+def set_tags(s3_client, s3_object, tags_data=None):
 
     # Skip setting of tags if tag data is not provided
     if tags_data is None:
@@ -150,17 +150,12 @@ def set_tags(s3_client, s3_object, tags_data=None, update=False):
     )["TagSet"]
     new_tags = copy.copy(curr_tags)
 
-    if not update:
-        for tag in curr_tags:
-            if tag["Key"] in [
-                AV_SIGNATURE_METADATA,
-                AV_STATUS_METADATA,
-                AV_TIMESTAMP_METADATA,
-            ]:
-                new_tags.remove(tag)
+    for tag in curr_tags:
+        if tag["Key"] in tags_data.keys():
+            new_tags.remove(tag)
 
-    for k, v in tags_data:
-        new_tags.append({"Key": k, "Value": v})
+    for k, v in tags_data.items():
+        new_tags.append({"Key": k, "Value": str(v)})
 
     s3_client.put_object_tagging(
         Bucket=s3_object.bucket_name, Key=s3_object.key, Tagging={"TagSet": new_tags}
@@ -249,7 +244,7 @@ def lambda_handler(event, context):
                   f'Skipping AV scanning')
 
             # Set SKIP_LARGE_FILE tag to the file
-            set_tags(s3_client=s3_client, s3_object=s3_object, tags_data={SKIP_LARGE_FILE: True}, update=True)
+            set_tags(s3_client=s3_client, s3_object=s3_object, tags_data={SKIP_LARGE_FILE: 'TRUE'})
 
             return
     except ClientError:
