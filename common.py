@@ -47,10 +47,6 @@ SNS_ENDPOINT = os.getenv("SNS_ENDPOINT", None)
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", None)
 LAMBDA_ENDPOINT = os.getenv("LAMBDA_ENDPOINT", None)
 
-# SolveBio envs
-ALLOWED_FILE_SIZE = os.getenv("ALLOWED_FILE_SIZE", 100 * 1024 * 1024)
-SKIP_LARGE_FILE = os.getenv("SKIP_LARGE_FILE", "skip-large-file")
-
 
 def create_dir(path):
     if not os.path.exists(path):

@@ -257,6 +257,8 @@
                 }
         Handler: "scan.lambda_handler"
         MemorySize: 1500
+        EphemeralStorage:
+          Size: 5210 # 5 GB
         Timeout: 300
         Role: !GetAtt [ IamRoleAVScanner, Arn ]
         Environment:
